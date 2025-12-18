@@ -1,7 +1,32 @@
 import Pyro4
-import random
-import time
-import threading
+
+from multiprocessing import Process
+import random, time, signal, sys
+
+broadcast_server = None
+
+def start_broadcast(insults, subscribers: list, running):
+    while running:
+        if insults and len(subscribers) > 0:
+            for subscriber in subscribers:
+                try:
+                    subscriber.receive_broadcast(random.choice(insults))
+                except Exception as e:
+                    subscribers.remove(subscriber)
+        elif not len(subscribers) > 0: # in case subscribers shut down
+            running = False
+            if broadcast_server.is_alive():
+                broadcast_server.terminate()
+                broadcast_server.join()
+            break
+        time.sleep(5)
+
+#def shutdown_server(daemon):
+#    daemon.shutdown()
+#    if broadcast_server.is_alive():
+#        broadcast_server.terminate()
+#        broadcast_server.join()
+#    sys.exit(0)
 
 @Pyro4.expose
 class InsultService:
@@ -19,18 +44,20 @@ class InsultService:
     def get_insults(self):
         return self.insults
     
-    def start_broadcast(self):
-        def run():
-            while self.running:
-                if self.insults:
-                    print("[PYRO] Broadcasting: ", random.choice(self.insults))
-                time.sleep(5)
-        threading.Thread(target=run, daemon=True).start()
+    def subscribe_broadcaster(self):
+        client_uri = input("Enter InsultService URI: ")
+        self.subscribers.append(Pyro4.Proxy(client_uri))
+        if not self.running: # only create one thread to subscribe to
+            self.running = True
+            broadcast_server = Process(target=start_broadcast(self.insults, self.subscribers, self.running))
+            broadcast_server.start()
         return True
-    
-#Daemon
-daemon = Pyro4.Daemon()
-uri = daemon.register(InsultService)
-print("InsultService PyRO URI: ", uri)
 
-daemon.requestLoop()
+if __name__ == "__main__":
+    daemon = Pyro4.Daemon()
+    uri = daemon.register(InsultService)
+    print("InsultService PyRO URI: ", uri)
+
+    #signal.signal(signal.SIGINT, shutdown_server(daemon))
+
+    daemon.requestLoop()

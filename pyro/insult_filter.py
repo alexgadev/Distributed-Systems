@@ -1,32 +1,60 @@
 import Pyro4
 
+from multiprocessing import Process, Queue, Manager
+
+import sys, signal
+
+NUM_WORKERS = 1
+INSULTS = ["idiot", "stupid", "nerd"]
+
+workers = []
+
+
 @Pyro4.expose
 class InsultFilter:
-    def __init__(self):
-        self.filtered = []
-        self.insults = []
-        self.insult_proxy = None
+    def __init__(self, task_queue, filtered):
+        self.task_queue = task_queue
+        self.filtered = filtered
 
-    def submit_service_uri(self, uri):
-        self.insult_proxy = Pyro4.Proxy(uri)
-
-    def update_insults(self):
-        self.insults = self.insult_proxy.get_insults()
-        print(self.insults)
-        return True
-    
     def submit_text(self, text):
-        for insult in self.insults:
-            text = text.replace(insult, "CENSORED")
-        self.filtered.append(text)
+        self.task_queue.put(text)
         return text
     
     def get_filtered(self):
-        return self.filtered
+        return list(self.filtered)
 
-#Daemon
-daemon = Pyro4.Daemon()
-uri = daemon.register(InsultFilter)
-print("InsultFilter PyRO URI: ", uri)
+def worker_loop(task_queue, filtered):
+    while True:
+        text = task_queue.get() # blocks until new job
+        for insult in INSULTS:
+            if insult in text:
+                result = text.replace(insult, "CENSORED")
+        filtered.append(result)
 
-daemon.requestLoop()
+#def shutdown_server(daemon):
+#    daemon.shutdown()
+#    for worker in workers:
+#        if worker.is_alive():
+#            worker.terminate()
+#            worker.join()
+#    sys.exit(0)
+
+
+if __name__ == "__main__":
+    task_queue = Queue()
+    manager = Manager()
+    filtered = manager.list() 
+
+    for _ in range(NUM_WORKERS):
+        p = Process(target=worker_loop, args=(task_queue, filtered))
+        p.start()
+        workers.append(p)
+
+    #Daemon
+    daemon = Pyro4.Daemon()
+    uri = daemon.register(InsultFilter(task_queue, filtered))
+    print("InsultFilter PyRO URI: ", uri)
+
+    #signal.signal(signal.SIGINT, shutdown_server(daemon))
+    
+    daemon.requestLoop()
