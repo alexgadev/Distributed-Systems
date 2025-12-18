@@ -7,7 +7,8 @@ import threading
 class InsultService:
     def __init__(self):
         self.insults = []
-        self.running = True
+        self.running = False
+        self.subscribers = []
     
     def add_insult(self, insult):
         if insult not in self.insults:
