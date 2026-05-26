@@ -43,8 +43,8 @@ if __name__ == "__main__":
 
     # retrieve insult list
     print("\nRetrieving list of insults...")
-    for insult in insult_srv.get_insults():
-        print("Insult retrieved: " + insult)
+    retrieved = insult_srv.get_insults()
+    print(retrieved)
 
     # obtain the filtered text(s)
     print(filter_srv.get_filtered())
@@ -54,7 +54,6 @@ if __name__ == "__main__":
     p = Process(target=start_client_server)
     p.start()
     insult_srv.subscribe_broadcaster("9000")
-
     # leave client running to retrieve some more insults from broadcast
     try:
         while True:

@@ -11,15 +11,18 @@ broadcast_server = None
 def start_broadcast(insults, subscribers):
     while True:
         if insults and subscribers:
-            for url in subscribers:
+            for url in list(subscribers):
                 try:
+                    #print("Sending message to " + url)
                     xmlrpc.client.ServerProxy(url).receive_broadcast(random.choice(insults))
-                except Exception as e:
+                except ConnectionRefusedError:
+                    pass #print("Client not ready yet")
+                except Exception:
                     try:
                         subscribers.remove(url)
                     except ValueError:
                         pass
-        elif not subscribers: # in case subscribers shut down
+        if not subscribers: # in case subscribers shut down
             break
         time.sleep(5)
 
@@ -46,7 +49,7 @@ class InsultService:
         return False
 
     def get_insults(self):
-        return self.insults
+        return list(self.insults)
 
     def subscribe_broadcaster(self, port):
         url = "http://localhost:" + port
