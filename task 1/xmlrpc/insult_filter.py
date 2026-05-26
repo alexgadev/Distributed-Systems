@@ -32,8 +32,8 @@ def worker_loop(task_queue, filtered):
         text = task_queue.get() # blocks until new job
         for insult in INSULTS:
             if insult in text:
-                result = text.replace(insult, "CENSORED")
-        filtered.append(result)
+                text = text.replace(insult, "CENSORED")
+        filtered.append(text)
 
 def shutdown_server(server):
     server.shutdown()
@@ -59,7 +59,7 @@ if __name__ == "__main__":
         server.register_instance(InsultFilter(task_queue, filtered))
 
         # Run the server's main loop
-        print("InsultFilter XMLRPC running on port 8000")
+        print("InsultFilter XMLRPC running on port 8001")
 
         signal.signal(signal.SIGINT, shutdown_server) # handle workers' processes when closing the server
 
