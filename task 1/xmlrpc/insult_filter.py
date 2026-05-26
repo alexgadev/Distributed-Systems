@@ -35,8 +35,7 @@ def worker_loop(task_queue, filtered):
                 text = text.replace(insult, "CENSORED")
         filtered.append(text)
 
-def shutdown_server(server):
-    server.shutdown()
+def shutdown_server(signum, frame):
     for worker in workers:
         if worker.is_alive():
             worker.terminate()

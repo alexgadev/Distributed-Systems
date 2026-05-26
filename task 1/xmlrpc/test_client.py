@@ -41,6 +41,8 @@ if __name__ == "__main__":
     # filter a text with one of the insults sent in it
     filter_srv.submit_text("I tried to code something in the library but this idiot wouldn't let me work by myself.")
 
+    filter_srv.submit_text("No politics here")
+
     # retrieve insult list
     print("\nRetrieving list of insults...")
     retrieved = insult_srv.get_insults()
