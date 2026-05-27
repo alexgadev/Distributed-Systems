@@ -1,7 +1,7 @@
 import Pyro4
 
 from multiprocessing import Process
-import random, time, signal, sys
+import random, time, signal, sys, json
 
 broadcast_server = None
 
@@ -44,8 +44,17 @@ class InsultService:
     def get_insults(self):
         return self.insults
     
-    def subscribe_broadcaster(self):
-        client_uri = input("Enter InsultService URI: ")
+    def subscribe_broadcaster(self, client_uri_pos):
+        with open("task 1/pyro/settings.json", "r+") as file:
+            data = json.load(file)
+            try:
+                print("client_uri_pos = " + str(client_uri_pos))
+                client_uri = data['client_uri'][client_uri_pos]
+            except Exception as e:
+                print(e)
+                return True
+
+        #client_uri = input("Enter InsultService URI: ")
         self.subscribers.append(Pyro4.Proxy(client_uri))
         if not self.running: # only create one thread to subscribe to
             self.running = True
@@ -56,7 +65,14 @@ class InsultService:
 if __name__ == "__main__":
     daemon = Pyro4.Daemon()
     uri = daemon.register(InsultService)
-    print("InsultService PyRO URI: ", uri)
+    #print("InsultService PyRO URI: ", uri)
+
+    with open("task 1/pyro/settings.json", "r+") as file:
+        data = json.load(file)
+        data['service_uri'] = str(uri)
+        file.seek(0)
+        json.dump(data, file, indent=4)
+        file.truncate()
 
     #signal.signal(signal.SIGINT, shutdown_server(daemon))
 

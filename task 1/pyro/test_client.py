@@ -1,10 +1,8 @@
 import Pyro4
 
-from multiprocessing import Process
+from multiprocessing import Process, Manager
 
-import time
-
-uri_broadcast_receiver = None
+import time, json
 
 @Pyro4.expose
 class Broadcast_Receiver:
@@ -12,19 +10,31 @@ class Broadcast_Receiver:
         print("Broadcast received: ", message)
         return True
 
-def start_client_server():
+def start_client_server(shared_pos):
     daemon = Pyro4.Daemon()
     uri = daemon.register(Broadcast_Receiver)
-    print("Broadcast_Receiver URI: ", uri)
+    with open("task 1/pyro/settings.json", "r+") as file:
+        data = json.load(file)
+        shared_pos.value = data['n_clients']
+        print("client_uri_pos = " + str(shared_pos.value))
+        data['client_uri'].append(str(uri))
+        file.seek(0)
+        data['n_clients'] = shared_pos.value + 1
+        json.dump(data, file, indent=4)
+        file.truncate()
 
     daemon.requestLoop()
 
 
 if __name__ == "__main__":
-    INSULT_SERVICE_URI = input("Enter InsultService URI: ")
+    #INSULT_SERVICE_URI = input("Enter InsultService URI: ")
+    #INSULT_FILTER_URI = input("Enter InsultFilter URI: ")
+    with open("task 1/pyro/settings.json", "r+") as file:
+        data = json.load(file)
+        INSULT_SERVICE_URI = data['service_uri']
+        INSULT_FILTER_URI = data['filter_uri']
+
     insult_srv = Pyro4.Proxy(INSULT_SERVICE_URI)
-    
-    INSULT_FILTER_URI = input("Enter InsultFilter URI: ")
     filter_srv = Pyro4.Proxy(INSULT_FILTER_URI)
 
     # send insults
@@ -45,9 +55,12 @@ if __name__ == "__main__":
 
     # subscribe to broadcaster
     print("\nAttempting to subscribe to broadcaster...")
-    p = Process(target=start_client_server)
-    p.start()
-    insult_srv.subscribe_broadcaster()
+    with Manager() as manager:
+        shared_pos = manager.Value('i', -1)
+        p = Process(target=start_client_server, args=(shared_pos,))
+        p.start()
+        time.sleep(5)
+        insult_srv.subscribe_broadcaster(shared_pos.value)
 
     # leave client running to retrieve some more insults from broadcast
     try:
