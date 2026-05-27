@@ -2,7 +2,7 @@ import Pyro4
 
 from multiprocessing import Process, Queue, Manager
 
-import sys, signal
+import sys, signal, json
 
 NUM_WORKERS = 1
 INSULTS = ["idiot", "stupid", "nerd"]
@@ -53,7 +53,13 @@ if __name__ == "__main__":
     #Daemon
     daemon = Pyro4.Daemon()
     uri = daemon.register(InsultFilter(task_queue, filtered))
-    print("InsultFilter PyRO URI: ", uri)
+    with open("task 1/pyro/settings.json", "r+") as file:
+        data = json.load(file)
+        data['filter_uri'] = str(uri)
+        file.seek(0)
+        json.dump(data, file, indent=4)
+        file.truncate()
+    #print("InsultFilter PyRO URI: ", uri)
 
     #signal.signal(signal.SIGINT, shutdown_server(daemon))
     
