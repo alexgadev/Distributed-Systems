@@ -5,10 +5,7 @@ from multiprocessing import Process, Queue, Manager
 import sys, signal, json
 
 NUM_WORKERS = 1
-INSULTS = ["idiot", "stupid", "nerd"]
-
 workers = []
-
 
 @Pyro4.expose
 class InsultFilter:
@@ -23,13 +20,13 @@ class InsultFilter:
     def get_filtered(self):
         return list(self.filtered)
 
-def worker_loop(task_queue, filtered):
+def worker_loop(service_uri, task_queue, filtered):
     while True:
         try:
             text = task_queue.get(block=True) # blocks until new job
         except (KeyboardInterrupt, EOFError):
             break
-        for insult in INSULTS:
+        for insult in Pyro4.Proxy(service_uri).get_insults():
             if insult in text:
                 text = text.replace(insult, "CENSORED")
         filtered.append(text)
@@ -58,8 +55,12 @@ if __name__ == "__main__":
     manager = Manager()
     filtered = manager.list() 
 
+    with open("task 1/pyro/settings.json", "r+") as file:
+        data = json.load(file)
+        service_uri = data['service_uri']
+
     for _ in range(NUM_WORKERS):
-        p = Process(target=worker_loop, args=(task_queue, filtered))
+        p = Process(target=worker_loop, args=(service_uri, task_queue, filtered))
         p.start()
         workers.append(p)
 

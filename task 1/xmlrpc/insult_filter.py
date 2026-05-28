@@ -28,9 +28,11 @@ class InsultFilter:
         return list(self.filtered)
     
 def worker_loop(task_queue, filtered):
+    url = "http://localhost:8000"
     while True:
         text = task_queue.get() # blocks until new job
-        for insult in INSULTS:
+
+        for insult in xmlrpc.client.ServerProxy(url).get_insults():
             if insult in text:
                 text = text.replace(insult, "CENSORED")
         filtered.append(text)
