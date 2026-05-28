@@ -1,39 +1,44 @@
 import Pyro4
 
-from multiprocessing import Process
+from multiprocessing import Process, Manager
 import random, time, signal, sys, json
 
 broadcast_server = None
 
-def start_broadcast(insults, subscribers: list, running):
-    while running:
-        if insults and len(subscribers) > 0:
-            for subscriber in subscribers:
+def start_broadcast(insults, subscribers):
+    while True:
+        if insults and subscribers:
+            for uri in list(subscribers):
                 try:
-                    subscriber.receive_broadcast(random.choice(insults))
+                    Pyro4.Proxy(uri).receive_broadcast(random.choice(insults))
                 except Exception as e:
-                    subscribers.remove(subscriber)
-        elif not len(subscribers) > 0: # in case subscribers shut down
-            running = False
-            if broadcast_server.is_alive():
-                broadcast_server.terminate()
-                broadcast_server.join()
+                    subscribers.remove(uri)
+        if not subscribers: # in case subscribers shut down
             break
         time.sleep(5)
 
-#def shutdown_server(daemon):
-#    daemon.shutdown()
-#    if broadcast_server.is_alive():
-#        broadcast_server.terminate()
-#        broadcast_server.join()
-#    sys.exit(0)
+def sanitize_closeup():
+    with open("task 1/pyro/settings.json", "r+") as file:
+        data = json.load(file)
+        data['service_uri'] = ""
+        file.seek(0)
+        json.dump(data, file, indent=4)
+        file.truncate()
+
+def shutdown_server(signum, frame):
+    global broadcast_server
+    if broadcast_server and broadcast_server.is_alive():
+        broadcast_server.terminate()
+        broadcast_server.join()
+    sanitize_closeup()
+    sys.exit(0)
 
 @Pyro4.expose
 class InsultService:
-    def __init__(self):
-        self.insults = []
+    def __init__(self, insults, subscribers):
+        self.insults = insults
         self.running = False
-        self.subscribers = []
+        self.subscribers = subscribers
     
     def add_insult(self, insult):
         if insult not in self.insults:
@@ -42,30 +47,31 @@ class InsultService:
         return False
     
     def get_insults(self):
-        return self.insults
+        return list(self.insults)
     
     def subscribe_broadcaster(self, client_uri_pos):
         with open("task 1/pyro/settings.json", "r+") as file:
             data = json.load(file)
-            try:
-                print("client_uri_pos = " + str(client_uri_pos))
-                client_uri = data['client_uri'][client_uri_pos]
-            except Exception as e:
-                print(e)
-                return True
+            client_uri = data['client_uri'][client_uri_pos]["uri"]
 
-        #client_uri = input("Enter InsultService URI: ")
-        self.subscribers.append(Pyro4.Proxy(client_uri))
-        if not self.running: # only create one thread to subscribe to
-            self.running = True
-            broadcast_server = Process(target=start_broadcast(self.insults, self.subscribers, self.running))
-            broadcast_server.start()
-        return True
+        if client_uri not in self.subscribers:
+            self.subscribers.append(client_uri)
+            if not self.running: # only create one thread to subscribe to
+                self.running = True
+                global broadcast_server
+                broadcast_server = Process(target=start_broadcast, args=(self.insults, self.subscribers))
+                broadcast_server.start()
+            return True
+        else:
+            return False
 
 if __name__ == "__main__":
+    manager = Manager()
+    insults = manager.list()
+    subscribers = manager.list()
+
     daemon = Pyro4.Daemon()
-    uri = daemon.register(InsultService)
-    #print("InsultService PyRO URI: ", uri)
+    uri = daemon.register(InsultService(insults, subscribers))
 
     with open("task 1/pyro/settings.json", "r+") as file:
         data = json.load(file)
@@ -74,6 +80,6 @@ if __name__ == "__main__":
         json.dump(data, file, indent=4)
         file.truncate()
 
-    #signal.signal(signal.SIGINT, shutdown_server(daemon))
+    signal.signal(signal.SIGINT, shutdown_server)
 
     daemon.requestLoop()

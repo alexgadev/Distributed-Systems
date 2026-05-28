@@ -25,19 +25,32 @@ class InsultFilter:
 
 def worker_loop(task_queue, filtered):
     while True:
-        text = task_queue.get() # blocks until new job
+        try:
+            text = task_queue.get(block=True) # blocks until new job
+        except (KeyboardInterrupt, EOFError):
+            break
         for insult in INSULTS:
             if insult in text:
-                result = text.replace(insult, "CENSORED")
-        filtered.append(result)
+                text = text.replace(insult, "CENSORED")
+        filtered.append(text)
 
-#def shutdown_server(daemon):
-#    daemon.shutdown()
-#    for worker in workers:
-#        if worker.is_alive():
-#            worker.terminate()
-#            worker.join()
-#    sys.exit(0)
+def sanitize_closeup():
+    with open("task 1/pyro/settings.json", "r+") as file:
+        data = json.load(file)
+        # empty uri string
+        data['filter_uri'] = ""
+        # re-store again
+        file.seek(0)
+        json.dump(data, file, indent=4)
+        file.truncate()
+
+def shutdown_server(signum, frame):
+    for worker in workers: # terminate all workers
+        if worker.is_alive():
+            worker.terminate()
+            worker.join()
+    sanitize_closeup() # clean settings.json
+    sys.exit(0)
 
 
 if __name__ == "__main__":
@@ -59,8 +72,7 @@ if __name__ == "__main__":
         file.seek(0)
         json.dump(data, file, indent=4)
         file.truncate()
-    #print("InsultFilter PyRO URI: ", uri)
 
-    #signal.signal(signal.SIGINT, shutdown_server(daemon))
+    signal.signal(signal.SIGINT, shutdown_server)
     
     daemon.requestLoop()
