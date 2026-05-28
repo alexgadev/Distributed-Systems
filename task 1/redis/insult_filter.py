@@ -14,6 +14,9 @@ def submit_text(text):
     r.rpush("filtered", text)
     return text
 
+def get_filtered():
+    pass
+
 if __name__ == "__main__":
     pubsub.subscribe(INPUT)
     print("Filter listenning...")

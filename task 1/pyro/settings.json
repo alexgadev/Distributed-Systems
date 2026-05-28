@@ -1,5 +1,6 @@
 {
     "service_uri": "",
     "filter_uri": "",
-    "client_uri": ""
+    "n_clients": 0,
+    "client_uri": []
 }
