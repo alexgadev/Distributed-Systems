@@ -30,6 +30,6 @@ if __name__ == "__main__":
     try:
         for msg in sub.listen():
             if msg['type'] == 'message':
-                print("[Client] Received broadcast:", msg['data'].decode())
+                print("[Client] Received broadcast:", msg['data'])
     except KeyboardInterrupt:
         print("Closing client...")

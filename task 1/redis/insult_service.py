@@ -10,7 +10,8 @@ CHANNEL = "insult_broadcast"
 def start_broadcast():
     r = redis.Redis(decode_responses=True)
     while True:
-        n_subscribers = r.pubsub_numsub(CHANNEL).get(CHANNEL, 0)
+        n_subscribers = dict(r.pubsub_numsub(CHANNEL)).get(CHANNEL, 0)
+  
         # should only send insults if there is at least one subscriber
         if n_subscribers > 0:
             insults = r.lrange(INSULT_LIST_KEY, 0, -1)
