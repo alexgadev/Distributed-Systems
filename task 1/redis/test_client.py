@@ -3,7 +3,7 @@ import redis
 from insult_service import *
 from insult_filter import *
 
-r = redis.Redis()
+r = redis.Redis(decode_responses=True)
 sub = r.pubsub()
 sub.subscribe("insult_broadcast")
 
@@ -29,4 +29,4 @@ try:
         if msg['type'] == 'message':
             print("[Client] Received broadcast:", msg['data'].decode())
 except KeyboardInterrupt:
-    pass
+    print("Closing client...")

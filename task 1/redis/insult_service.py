@@ -10,19 +10,22 @@ INSULT_LIST_KEY = "insults"
 CHANNEL = "insult_broadcast"
 
 def add_insult(insult):
-    r.rpush(INSULT_LIST_KEY, insult)
-    return True
+    if insult not in r.lrange(INSULT_LIST_KEY, 0, -1):
+        r.rpush(INSULT_LIST_KEY, insult)
+        return True
+    else:
+        return False
 
 def get_insults():
     return r.lrange(INSULT_LIST_KEY, 0, -1)
 
 def start_broadcast():
     while True:
-        insults = get_insults()
-        if insults:
-            insult = random.choice(insults)
-            r.publish(CHANNEL, insult)
-            #print("[REDIS] Broadcasting:", insult)
+        n_subscribers = r.pubsub_numsub(CHANNEL).get(CHANNEL, 0)
+        if n_subscribers > 0:
+            insults = get_insults()
+            if insults:
+                r.publish(CHANNEL, random.choice(insults))
         time.sleep(5)
 
 if __name__ == "__main__":
