@@ -11,6 +11,8 @@ def start_broadcast(insults, subscribers):
             for uri in list(subscribers):
                 try:
                     Pyro4.Proxy(uri).receive_broadcast(random.choice(insults))
+                except Pyro4.errors.CommunicationError:
+                    pass
                 except Exception as e:
                     subscribers.remove(uri)
         if not subscribers: # in case subscribers shut down

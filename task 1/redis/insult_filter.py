@@ -11,8 +11,8 @@ if __name__ == "__main__":
     print("Redis InsultFilter listening...")
     try:
         while True:
-            INSULTS = r.lrange("insults", 0, -1)
             _, text = r.blpop(INSULT_QUEUE) # blocks until a job arrives
+            INSULTS = r.lrange("insults", 0, -1)
             for insult in INSULTS:
                 text = text.replace(insult, "CENSORED")
 

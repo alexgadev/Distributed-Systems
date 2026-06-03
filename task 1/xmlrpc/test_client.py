@@ -2,7 +2,7 @@ import xmlrpc.client
 
 from multiprocessing import Process
 
-import time
+import time, sys
 
 def start_client_server():
     """
@@ -22,6 +22,7 @@ def start_client_server():
 
     def receive_broadcast(message):
         print("Broadcast received: ", message)
+        sys.stdout.flush()
         return True
 
     server.register_function(receive_broadcast)

@@ -24,6 +24,8 @@ def worker_loop(service_uri, task_queue, filtered):
     while True:
         try:
             text = task_queue.get(block=True) # blocks until new job
+        except Pyro4.errors.CommunicationError:
+            pass
         except (KeyboardInterrupt, EOFError):
             break
         for insult in Pyro4.Proxy(service_uri).get_insults():

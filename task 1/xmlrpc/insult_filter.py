@@ -5,6 +5,8 @@ from multiprocessing import Process, Queue, Manager
 
 import sys, signal
 
+import xmlrpc.client
+
 NUM_WORKERS = 1
 INSULTS = ["idiot", "stupid", "nerd"]
 
