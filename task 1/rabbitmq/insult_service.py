@@ -12,6 +12,7 @@ def start_broadcast(insult_list):
     connection = pika.BlockingConnection(pika.ConnectionParameters(host='localhost'))
     channel = connection.channel()
     
+    # declare a pubsub exchange
     channel.exchange_declare(queue=BROADCAST_EXCHANGE, exchange_type='fanout')
 
     while True:
@@ -65,6 +66,7 @@ class InsultService:
             properties=pika.BasicProperties(correlation_id=props.correlation_id),
             body=str(body)
         )
+        ch.basic_ack(delivery_tag=method.delivery_tag)
 
     def run(self):
         self.channel.basic_qos(prefetch_count=1)
