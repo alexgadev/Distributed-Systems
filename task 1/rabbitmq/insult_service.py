@@ -60,24 +60,34 @@ class InsultService:
         return False
     
     def request_callback(self, ch, method, props, body):
+        req = json.loads(body)
+        action = req.get('action')
+
+        # create response depending on the action on the insult queue
+        if action == 'add_insult':
+            result = self.add_insult(req['insult'])
+            response = json.dumps({'result': result})
+        elif action == 'get_insults':
+            response = json.dumps({'result': self.get_insults()})
+        else:
+            response = json.dumps({'error': 'Unkown action'})
+
         ch.basic_publish(
             exchange='',
             routing_key=props.reply_to,
             properties=pika.BasicProperties(correlation_id=props.correlation_id),
-            body=str(body)
+            body=response
         )
         ch.basic_ack(delivery_tag=method.delivery_tag)
 
     def run(self):
-        self.channel.basic_qos(prefetch_count=1)
+        self.channel.basic_qos(prefetch_count=1) # only one item at a time per worker
         self.channel.basic_consume(queue=INSULT_QUEUE, on_message_callback=self.request_callback)
         self.channel.start_consuming()
 
 if __name__ == "__main__":
     service = InsultService()
-    service.start_broadcaster() # the downpart of this is that we must run an instance of the service
-                            # instead of being able to just call its functions from the client in order 
-                            # not to create multiple broadcaster processes if multiple clients exist at once
+    service.start_broadcaster() 
     print("RabbitMQ InsultService running...")
     try:
         service.run()
