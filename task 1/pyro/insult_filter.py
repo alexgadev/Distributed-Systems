@@ -2,9 +2,9 @@ import Pyro4
 
 from multiprocessing import Process, Queue, Manager
 
-import sys, signal, json
+import sys, signal, json, os
 
-NUM_WORKERS = 1
+NUM_WORKERS = int(os.environ.get("INSULT_FILTER_WORKERS", "1"))
 workers = []
 
 @Pyro4.expose

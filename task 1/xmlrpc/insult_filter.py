@@ -3,11 +3,11 @@ from xmlrpc.server import SimpleXMLRPCRequestHandler
 
 from multiprocessing import Process, Queue, Manager
 
-import sys, signal
+import sys, signal, os
 
 import xmlrpc.client
 
-NUM_WORKERS = 1
+NUM_WORKERS = int(os.environ.get("INSULT_FILTER_WORKERS", "1"))
 INSULTS = ["idiot", "stupid", "nerd"]
 
 workers = []
