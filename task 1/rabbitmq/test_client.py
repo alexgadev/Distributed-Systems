@@ -60,7 +60,7 @@ class InsultClient:
         return self._call({'action': 'add_insult', 'insult': insult})
 
     def get_insults(self):
-        return self._call({'action': 'get_insults'}).get('insults', [])
+        return self._call({'action': 'get_insults'}).get('result', [])
 
     def submit_filter(self, text):
         """Defines the workflow to send a job to the filter queue

@@ -21,7 +21,7 @@ def start_broadcast(insult_list):
     channel = connection.channel()
     
     # declare a pubsub exchange
-    channel.exchange_declare(queue=BROADCAST_EXCHANGE, exchange_type='fanout')
+    channel.exchange_declare(exchange=BROADCAST_EXCHANGE, exchange_type='fanout')
 
     while True:
         if insult_list:
@@ -103,7 +103,7 @@ class InsultService:
         if self.broadcast_proc and self.broadcast_proc.is_alive():
             return False
         # create broadcast process
-        self.broadcast_proc = Process(target=start_broadcast)
+        self.broadcast_proc = Process(target=start_broadcast, args=(self.insults, ))
         self.broadcast_proc.start()
         return True
 

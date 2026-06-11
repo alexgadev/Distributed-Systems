@@ -59,7 +59,7 @@ class InsultFilter:
         )
         while self.rpc_response is None:
             self.connection.process_data_events()
-        return json.loads(self.rpc_response).get('insults', [])
+        return json.loads(self.rpc_response).get('result', [])
 
     def on_filter_request(self, ch, method, props, body):
         """Actual callback function for the filter queue. Sends filtered texts to a filtered queue.
