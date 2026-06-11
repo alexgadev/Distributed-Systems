@@ -14,7 +14,7 @@ class InsultClient:
         self.r = redis.Redis(decode_responses=True)
 
         # fresh start
-        self.r.delete(INSULT_LIST, FILTER_QUEUE, FILTERED_RESULTS_QUEUE)
+        #self.r.delete(INSULT_LIST, FILTER_QUEUE, FILTERED_RESULTS_QUEUE)
 
     def add_insult(self, insult):
         if insult not in self.r.lrange(INSULT_LIST, 0, -1):
@@ -33,7 +33,7 @@ class InsultClient:
         return self.r.lrange(FILTERED_RESULTS_QUEUE, 0, -1)
 
     def listen_broadcast(self):
-        """Subscribes to the broadcast pubsub and defines the method callback for every message received
+        """Subscribes to the broadcast pubsub 
         """
 
         print("Listening to Redis insult broadcast:")
