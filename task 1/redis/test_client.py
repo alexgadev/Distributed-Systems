@@ -1,40 +1,72 @@
 import redis, time
 
-from insult_service import InsultService, CHANNEL
-from insult_filter import INSULT_QUEUE, FILTERED_LIST_KEY
+INSULT_LIST = "insult_list"
+BROADCAST_EXCHANGE = "insult_pubsub"
+FILTER_QUEUE = "filter_queue"
+FILTERED_RESULTS_QUEUE = "filtered_results_queue"
+
+
+class InsultClient:
+    """Helper class to ease the calls to redis' queues and lists
+    """
+
+    def __init__(self):
+        self.r = redis.Redis(decode_responses=True)
+
+        # fresh start
+        #self.r.delete(INSULT_LIST, FILTER_QUEUE, FILTERED_RESULTS_QUEUE)
+
+    def add_insult(self, insult):
+        if insult not in self.r.lrange(INSULT_LIST, 0, -1):
+            self.r.rpush(INSULT_LIST, insult) 
+            return True
+        else:
+            return False
+
+    def get_insults(self):
+        return self.r.lrange(INSULT_LIST, 0, -1)
+
+    def submit_text(self, text):
+        self.r.rpush(FILTER_QUEUE, text)
+
+    def get_filtered_results(self):
+        return self.r.lrange(FILTERED_RESULTS_QUEUE, 0, -1)
+
+    def listen_broadcast(self):
+        """Subscribes to the broadcast pubsub 
+        """
+
+        print("Listening to Redis insult broadcast:")
+        sub = self.r.pubsub()
+        sub.subscribe(BROADCAST_EXCHANGE)
+        try:
+            for msg in sub.listen():
+                if msg['type'] == 'message':
+                    print("[Client] Received broadcast:", msg['data'])
+        except KeyboardInterrupt:
+            print("Closing client...")
+
 
 if __name__ == "__main__":
-    r = redis.Redis(decode_responses=True)
-
-    # fresh start
-    r.delete("insults", INSULT_QUEUE, FILTERED_LIST_KEY)
-
-    service = InsultService()
+    client = InsultClient()
 
     # send insults
     print("Sending insults...")
-    service.add_insult("idiot")
-    service.add_insult("stupid")
+    client.add_insult("idiot")
+    client.add_insult("stupid")
 
     # filter a text with one of the insults sent in it
-    r.rpush(INSULT_QUEUE, "I tried to code something in the library but this idiot wouldn't let me work by myself.")
+    client.submit_text("I tried to code something in the library but this idiot wouldn't let me work by myself.")
 
     time.sleep(2)
 
     # retrieve insult list
     print("\nRetrieving list of insults...")
-    for insult in service.get_insults():
+    for insult in client.get_insults():
         print("Insult retrieved: " + insult)
 
     # obtain the filtered text(s)
-    print(r.lrange(FILTERED_LIST_KEY, 0, -1))
+    print(client.get_filtered_results())
 
-    print("Listening to Redis insult broadcast:")
-    sub = r.pubsub()
-    sub.subscribe(CHANNEL)
-    try:
-        for msg in sub.listen():
-            if msg['type'] == 'message':
-                print("[Client] Received broadcast:", msg['data'])
-    except KeyboardInterrupt:
-        print("Closing client...")
+    # subscribe to broadcaster
+    client.listen_broadcast()
