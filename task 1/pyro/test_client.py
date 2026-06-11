@@ -1,18 +1,31 @@
+import json
+import time
+
 import Pyro4
 
 from multiprocessing import Process, Manager
 
-import time, json
 
 uri = None
 
 @Pyro4.expose
 class Broadcast_Receiver:
     def receive_broadcast(self, message):
+        """Prints a message sent by the broadcaster
+
+        Parameters
+        ----------
+        message : str
+            Message to be printed in the client console
+        """
+
         print("Broadcast received: ", message)
         return True
 
 def start_client_server(shared_pos, uri):
+    """Helper function to provide funcionality for the server to broadcast messages
+    """
+
     daemon = Pyro4.Daemon()
     uri.value = daemon.register(Broadcast_Receiver)
     with open("task 1/pyro/settings.json", "r+") as file:
@@ -33,6 +46,9 @@ def start_client_server(shared_pos, uri):
 
 
 def sanitize_closeup(uri):
+    """Cleans the settings file for future executions
+    """
+
     with open("task 1/pyro/settings.json", "r+") as file:
         data = json.load(file)
         n_clients = data['n_clients']

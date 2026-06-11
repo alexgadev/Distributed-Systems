@@ -10,6 +10,9 @@ BROADCAST_EXCHANGE = "insult_broadcast"
 
 
 class InsultClient:
+    """Helper class to ease working with RabbitMQ's queuess
+    """
+
     def __init__(self):
         self.connection = pika.BlockingConnection(pika.ConnectionParameters('localhost'))
         self.channel = self.connection.channel()
@@ -26,13 +29,18 @@ class InsultClient:
         self.rpc_response = None
         self.corr_id = None
 
-    # same as the filter
     def _on_rpc_response(self, ch, method, props, body):
+        """Callback function, checks for the same correlation id in case of missrouting
+            when having multiple filters and saves response
+        """
+
         if self.corr_id == props.correlation_id:
             self.rpc_response = body
 
-    # same workflow for both add and get insults
     def _call(self, request):
+        """Defines the basic workflow to send a job to the insult queue
+        """
+
         self.rpc_response = None
         self.corr_id = str(uuid.uuid4())
         self.channel.basic_publish(
@@ -55,6 +63,9 @@ class InsultClient:
         return self._call({'action': 'get_insults'}).get('insults', [])
 
     def submit_filter(self, text):
+        """Defines the workflow to send a job to the filter queue
+        """
+
         self.channel.queue_declare(queue=FILTER_QUEUE, durable=True)
         self.channel.basic_publish(
             exchange='',
@@ -64,6 +75,9 @@ class InsultClient:
         )
 
     def get_filtered_results(self):
+        """Accesses the filtered result queue to obtain all filtered texts
+        """
+
         self.channel.queue_declare(queue=FILTERED_RESULTS_QUEUE, durable=True)
         results = []
         while True:
@@ -74,6 +88,9 @@ class InsultClient:
         return results
 
     def listen_broadcast(self):
+        """Subscribes to the broadcast pubsub and defines the method callback for every message received
+        """
+
         self.channel.exchange_declare(exchange=BROADCAST_EXCHANGE, exchange_type='fanout')
         result = self.channel.queue_declare(queue='', exclusive=True)
         self.channel.queue_bind(exchange=BROADCAST_EXCHANGE, queue=result.method.queue)
