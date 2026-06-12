@@ -1,5 +1,6 @@
 import sys
 import json
+import pathlib
 import signal
 
 import Pyro4
@@ -28,21 +29,19 @@ def worker_loop(service_uri, task_queue, filtered):
     while True:
         try:
             text = task_queue.get(block=True) # blocks until new job
-        except Pyro4.errors.CommunicationError:
-            pass
+            for insult in Pyro4.Proxy(service_uri).get_insults():
+                if insult in text:
+                    text = text.replace(insult, "CENSORED")
+            filtered.append(text)
         except (KeyboardInterrupt, EOFError):
             break
 
-        for insult in Pyro4.Proxy(service_uri).get_insults():
-            if insult in text:
-                text = text.replace(insult, "CENSORED")
-        filtered.append(text)
 
 def sanitize_closeup():
     """Cleans the settings file for future executions
     """
 
-    with open("task 1/pyro/settings.json", "r+") as file:
+    with open(pathlib.Path(__file__).parent / "settings.json", "r+") as file:
         data = json.load(file)
         # empty uri string
         data['filter_uri'] = ""
@@ -116,7 +115,7 @@ if __name__ == "__main__":
     filtered = manager.list() 
 
     # obtain service server uri
-    with open("task 1/pyro/settings.json", "r+") as file:
+    with open(pathlib.Path(__file__).parent / "settings.json", "r+") as file:
         data = json.load(file)
         service_uri = data['service_uri']
 
@@ -129,7 +128,7 @@ if __name__ == "__main__":
     uri = daemon.register(InsultFilter(task_queue, filtered))
 
     # registers filter uri in settings file
-    with open("task 1/pyro/settings.json", "r+") as file:
+    with open(pathlib.Path(__file__).parent / "settings.json", "r+") as file:
         data = json.load(file)
         data['filter_uri'] = str(uri)
         file.seek(0)

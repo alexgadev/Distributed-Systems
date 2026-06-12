@@ -3,6 +3,7 @@ import json
 import time
 import random
 import signal
+import pathlib
 
 import Pyro4
 
@@ -43,7 +44,7 @@ def sanitize_closeup():
     """Cleans the settings file for future executions
     """
 
-    with open("task 1/pyro/settings.json", "r+") as file:
+    with open(pathlib.Path(__file__).parent / "settings.json", "r+") as file:
         data = json.load(file)
         data['service_uri'] = ""
         file.seek(0)
@@ -73,8 +74,6 @@ class InsultService:
         a list of string insults that persist through processes
     subscribers : Manager().list()
         a list of subscriber URLs that persist through processes
-    running : bool
-        the current state of the broadcaster of insults
 
     Methods
     -------
@@ -98,7 +97,6 @@ class InsultService:
 
         self.insults = insults
         self.subscribers = subscribers
-        self.running = False # keep the current state of the broadcaster
     
     def add_insult(self, insult):
         """Adds the insult to the insult list
@@ -131,20 +129,17 @@ class InsultService:
             The position of the uri in the settings array
         """
 
-        with open("task 1/pyro/settings.json", "r+") as file:
+        with open(pathlib.Path(__file__).parent / "settings.json", "r+") as file:
             data = json.load(file)
             client_uri = data['client_uri'][client_uri_pos]["uri"]
 
         if client_uri not in self.subscribers:
             self.subscribers.append(client_uri)
-            if not self.running: # only create one thread to subscribe to
-                self.running = True
-                global broadcast_server
-                broadcast_server = Process(target=start_broadcast, args=(self.insults, self.subscribers))
-                broadcast_server.start()
-            return True
-        else:
-            return False
+        global broadcast_server
+        if broadcast_server is None or not broadcast_server.is_alive():
+            broadcast_server = Process(target=start_broadcast, args=(self.insults, self.subscribers))
+            broadcast_server.start()
+        return True
 
 if __name__ == "__main__":
     manager = Manager()
@@ -155,7 +150,7 @@ if __name__ == "__main__":
     uri = daemon.register(InsultService(insults, subscribers))
 
     # save service uri in settings file
-    with open("task 1/pyro/settings.json", "r+") as file:
+    with open(pathlib.Path(__file__).parent / "settings.json", "r+") as file:
         data = json.load(file)
         data['service_uri'] = str(uri)
         file.seek(0)

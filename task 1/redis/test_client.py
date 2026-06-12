@@ -17,14 +17,10 @@ class InsultClient:
         #self.r.delete(INSULT_LIST, FILTER_QUEUE, FILTERED_RESULTS_QUEUE)
 
     def add_insult(self, insult):
-        if insult not in self.r.lrange(INSULT_LIST, 0, -1):
-            self.r.rpush(INSULT_LIST, insult) 
-            return True
-        else:
-            return False
+        return bool(self.r.sadd(INSULT_LIST, insult))
 
     def get_insults(self):
-        return self.r.lrange(INSULT_LIST, 0, -1)
+        return list(self.r.smembers(INSULT_LIST))
 
     def submit_text(self, text):
         self.r.rpush(FILTER_QUEUE, text)

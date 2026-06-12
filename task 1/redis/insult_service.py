@@ -14,7 +14,7 @@ def start_broadcast():
   
         # should only send insults if there is at least one subscriber
         if n_subscribers > 0:
-            insults = r.lrange(INSULT_LIST, 0, -1)
+            insults = list(r.smembers(INSULT_LIST))
             if insults:
                 r.publish(BROADCAST_EXCHANGE, random.choice(insults))
         time.sleep(5)    

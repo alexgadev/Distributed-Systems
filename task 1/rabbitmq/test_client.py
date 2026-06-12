@@ -17,6 +17,9 @@ class InsultClient:
         self.connection = pika.BlockingConnection(pika.ConnectionParameters('localhost'))
         self.channel = self.connection.channel()
 
+        self.channel.queue_declare(queue=FILTER_QUEUE, durable=True)
+        self.channel.queue_declare(queue=FILTERED_RESULTS_QUEUE, durable=True)
+
         # declare a queue to get the response
         result = self.channel.queue_declare(queue='', exclusive=True)
         self.callback_queue = result.method.queue
@@ -66,7 +69,6 @@ class InsultClient:
         """Defines the workflow to send a job to the filter queue
         """
 
-        self.channel.queue_declare(queue=FILTER_QUEUE, durable=True)
         self.channel.basic_publish(
             exchange='',
             routing_key=FILTER_QUEUE,
@@ -78,7 +80,6 @@ class InsultClient:
         """Accesses the filtered result queue to obtain all filtered texts
         """
 
-        self.channel.queue_declare(queue=FILTERED_RESULTS_QUEUE, durable=True)
         results = []
         while True:
             method_frame, _, body = self.channel.basic_get(queue=FILTERED_RESULTS_QUEUE, auto_ack=True)

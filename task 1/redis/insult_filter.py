@@ -11,7 +11,7 @@ if __name__ == "__main__":
     try:
         while True:
             _, text = r.blpop(FILTER_QUEUE) # blocks until a job arrives
-            INSULTS = r.lrange(INSULT_LIST, 0, -1)
+            INSULTS = r.smembers(INSULT_LIST)
             for insult in INSULTS:
                 text = text.replace(insult, "CENSORED")
 

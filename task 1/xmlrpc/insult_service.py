@@ -69,8 +69,6 @@ class InsultService:
         a list of string insults that persist through processes
     subscribers : Manager().list()
         a list of subscriber URLs that persist through processes
-    running : bool
-        the current state of the broadcaster of insults
 
     Methods
     -------
@@ -94,7 +92,6 @@ class InsultService:
 
         self.insults = insults
         self.subscribers = subscribers
-        self.running = False # keep the state of the broadcaster
 
     def add_insult(self, insult):
         """Adds the insult to the insult list
@@ -130,9 +127,9 @@ class InsultService:
         url = "http://localhost:" + port
         if url not in self.subscribers:
             self.subscribers.append(url)
-        if not self.running: # only create one thread to subscribe to
-            self.running = True
-            global broadcast_server
+        # only create one thread to subscribe to
+        global broadcast_server
+        if broadcast_server is None or not broadcast_server.is_alive():
             broadcast_server = Process(target=start_broadcast, args=(self.insults, self.subscribers))
             broadcast_server.start()
         return True

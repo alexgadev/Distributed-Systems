@@ -63,7 +63,7 @@ class InsultFilter:
 
     Methods
     -------
-    submit_text(text) -> bool:
+    submit_text(text) -> str:
         Submits a text to be treated by the workers
     get_filtered() -> Manager().list()
         Returns the current state of the filtered text list
