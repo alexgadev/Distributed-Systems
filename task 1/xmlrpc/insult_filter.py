@@ -30,7 +30,8 @@ class InsultFilter:
         return list(self.filtered)
     
 def worker_loop(task_queue, filtered):
-    url = "http://localhost:8000"
+    svc_port = int(os.environ.get("XMLRPC_SERVICE_PORT", "8000"))
+    url = f"http://localhost:{svc_port}"
     while True:
         text = task_queue.get() # blocks until new job
 
@@ -51,18 +52,18 @@ if __name__ == "__main__":
     manager = Manager()
     filtered = manager.list() # avoid loss of result through the worker process
 
-
     for _ in range(NUM_WORKERS):
         p = Process(target=worker_loop, args=(task_queue, filtered))
         p.start()
         workers.append(p)
 
-    with SimpleXMLRPCServer(('localhost', 8001),
+    flt_port = int(os.environ.get("XMLRPC_FILTER_PORT", "8001"))
+    with SimpleXMLRPCServer(('localhost', flt_port),
                             requestHandler=RequestHandler) as server:
         server.register_instance(InsultFilter(task_queue, filtered))
 
         # Run the server's main loop
-        print("InsultFilter XMLRPC running on port 8001")
+        print(f"InsultFilter XMLRPC running on port {flt_port}")
 
         signal.signal(signal.SIGINT, shutdown_server) # handle workers' processes when closing the server
 

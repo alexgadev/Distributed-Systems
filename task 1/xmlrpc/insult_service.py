@@ -2,7 +2,7 @@ from xmlrpc.server import SimpleXMLRPCServer
 from xmlrpc.server import SimpleXMLRPCRequestHandler
 
 from multiprocessing import Process, Manager
-import random, time, signal, sys
+import random, time, signal, sys, os
 
 import xmlrpc.client
 
@@ -68,7 +68,8 @@ if __name__ == "__main__":
     insults = manager.list()
     subscribers = manager.list()
 
-    with SimpleXMLRPCServer(('localhost', 8000),
+    port = int(os.environ.get("XMLRPC_SERVICE_PORT", "8000"))
+    with SimpleXMLRPCServer(('localhost', port),
                             requestHandler=RequestHandler) as server:
         server.register_introspection_functions()
 
@@ -77,7 +78,7 @@ if __name__ == "__main__":
         server.register_instance(InsultService(insults, subscribers))
         
         # Run the server's main loop
-        print("InsultService XMLRPC running on port 8000")
+        print(f"InsultService XMLRPC running on port {port}")
     
         signal.signal(signal.SIGINT, shutdown_server) # close broadcast process when closing the server
     
