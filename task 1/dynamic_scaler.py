@@ -40,7 +40,7 @@ import time
 import argparse
 from collections import deque
 
-FILTER_QUEUE = "insult_queue"
+FILTER_QUEUE = "filter_queue"   # must match redis/insult_filter.py
 CALIB_BATCH  = 30
 
 

@@ -12,6 +12,10 @@ Usage
   Concurrent clients (each sends n requests simultaneously):
     python client.py <middleware> <target> [n] --concurrent <c>
 
+  Target the XML-RPC orchestrator instead of the default backend port:
+    python client.py xmlrpc service 1000 --port 9000
+    python client.py xmlrpc filter  1000 --port 9001
+
 Arguments
 ---------
   middleware    xmlrpc | pyro | redis | rabbitmq
@@ -19,6 +23,7 @@ Arguments
   n             requests per client (default 1000)
   --all         run n = 1, 10, 100, 1000; print one JSON line each
   --concurrent  number of parallel client processes (default 1)
+  --port        override the XML-RPC endpoint port (XML-RPC only)
 
 Output
 ------
@@ -151,6 +156,9 @@ def main():
                         help="Run n = 1, 10, 100, 1000 sequentially")
     parser.add_argument("--concurrent", metavar="C", type=int, default=1,
                         help="Number of parallel client processes (default 1)")
+    parser.add_argument("--port", type=int, default=None,
+                        help="Override the XML-RPC endpoint port "
+                             "(e.g. target the orchestrator on 9000/9001)")
     args = parser.parse_args()
 
     sizes = LOAD_SIZES if args.all else [args.n]

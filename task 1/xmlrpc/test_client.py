@@ -20,7 +20,7 @@ def start_client_server():
         """
         rpc_paths = ('/RPC2',)
     
-    server = SimpleXMLRPCServer(('localhost', 9000), # this port is only hardcoded for the basic implementation
+    server = SimpleXMLRPCServer(('localhost', 9001), # this port is only hardcoded for the basic implementation
                             requestHandler=RequestHandler, 
                             logRequests=False,
                             allow_none=True)
@@ -79,7 +79,7 @@ if __name__ == "__main__":
     print("\nAttempting to subscribe to broadcaster...")
     p = Process(target=start_client_server)
     p.start()
-    insult_srv.subscribe_broadcaster("9000")
+    insult_srv.subscribe_broadcaster("9001")
 
     # leave client running to retrieve some more insults from broadcast
     try:
