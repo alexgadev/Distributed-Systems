@@ -1,5 +1,6 @@
 import sys
 import signal
+import os
 
 from multiprocessing import Process, Queue, Manager
 
@@ -9,7 +10,7 @@ from xmlrpc.server import SimpleXMLRPCServer
 from xmlrpc.server import SimpleXMLRPCRequestHandler
 
 
-NUM_WORKERS = 1
+NUM_WORKERS = int(os.environ.get("INSULT_FILTER_WORKERS", "1"))
 workers = []
 
 
@@ -100,7 +101,6 @@ class InsultFilter:
 
         return list(self.filtered)
 
-
 if __name__ == "__main__":
     task_queue = Queue()
     manager = Manager()
@@ -111,12 +111,13 @@ if __name__ == "__main__":
         p.start()
         workers.append(p)
 
-    with SimpleXMLRPCServer(('localhost', 8001),
+    flt_port = int(os.environ.get("XMLRPC_FILTER_PORT", "8001"))
+    with SimpleXMLRPCServer(('localhost', flt_port),
                             requestHandler=RequestHandler) as server:
         server.register_instance(InsultFilter(task_queue, filtered))
 
         # Run the server's main loop
-        print("InsultFilter XMLRPC running on port 8001")
+        print(f"InsultFilter XMLRPC running on port {flt_port}")
 
         signal.signal(signal.SIGINT, shutdown_server) # handle workers' processes when closing the server
 
