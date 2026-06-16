@@ -1,26 +1,40 @@
+import json
+import pathlib
+import time
+
 import Pyro4
 
 from multiprocessing import Process, Manager
 
-import time, json
 
 uri = None
 
 @Pyro4.expose
 class Broadcast_Receiver:
     def receive_broadcast(self, message):
+        """Prints a message sent by the broadcaster
+
+        Parameters
+        ----------
+        message : str
+            Message to be printed in the client console
+        """
+
         print("Broadcast received: ", message)
         return True
 
 def start_client_server(shared_pos, uri):
+    """Helper function to provide funcionality for the server to broadcast messages
+    """
+
     daemon = Pyro4.Daemon()
-    uri.value = daemon.register(Broadcast_Receiver)
-    with open("task 1/pyro/settings.json", "r+") as file:
+    uri.append(str(daemon.register(Broadcast_Receiver)))
+    with open(pathlib.Path(__file__).parent / "settings.json", "r+") as file:
         data = json.load(file)
         shared_pos.value = data['n_clients']
 
         client = {
-            "uri": str(uri.value)
+            "uri": uri[0]
         }
         
         data['client_uri'].append(client)
@@ -33,7 +47,10 @@ def start_client_server(shared_pos, uri):
 
 
 def sanitize_closeup(uri):
-    with open("task 1/pyro/settings.json", "r+") as file:
+    """Cleans the settings file for future executions
+    """
+
+    with open(pathlib.Path(__file__).parent / "settings.json", "r+") as file:
         data = json.load(file)
         n_clients = data['n_clients']
         data['n_clients'] = n_clients - 1
@@ -49,7 +66,7 @@ def sanitize_closeup(uri):
 
 
 if __name__ == "__main__":
-    with open("task 1/pyro/settings.json", "r+") as file:
+    with open(pathlib.Path(__file__).parent / "settings.json", "r+") as file:
         data = json.load(file)
         INSULT_SERVICE_URI = data['service_uri']
         INSULT_FILTER_URI = data['filter_uri']
@@ -71,6 +88,7 @@ if __name__ == "__main__":
         print("Insult retrieved: " + insult)
 
     # obtain the filtered text(s)
+    time.sleep(2)
     print(filter_srv.get_filtered())
 
     # subscribe to broadcaster
@@ -78,7 +96,7 @@ if __name__ == "__main__":
     with Manager() as manager:
         # variables to communicate and modify through different processes
         shared_pos = manager.Value('i', -1)
-        shared_uri = manager.Value('c', "")
+        shared_uri = manager.list()
 
         # create process to listen to broadcast
         p = Process(target=start_client_server, args=(shared_pos, shared_uri))
@@ -87,7 +105,7 @@ if __name__ == "__main__":
         # wait to populate all variables before accessing them (could do this in a better way tho)
         time.sleep(5)
 
-        uri = shared_uri.value # save uri to be able to remove it from settings later
+        uri = shared_uri[0] # save uri to be able to remove it from settings later
 
         insult_srv.subscribe_broadcaster(shared_pos.value)
 
