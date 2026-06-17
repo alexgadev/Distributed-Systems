@@ -1,0 +1,11 @@
+lithops:
+  backend: aws_lambda
+  storage: aws_s3
+
+aws_lambda:
+  execution_role: arn:aws:iam::067073066060:role/LabRole
+  region: us-east-1
+
+aws_s3:
+  storage_bucket: sd-insult-filter-axgaam   # must match BUCKET in config.py
+  region: us-east-1

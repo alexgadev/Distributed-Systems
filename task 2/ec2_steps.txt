@@ -1,0 +1,36 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Deploying RabbitMQ on the EC2 VM (t2.micro, Debian)
+#
+# Launch a t2.micro Debian instance with the LabInstanceProfile IAM role and a
+# security group that allows inbound TCP on:
+#     22    (SSH)
+#     5672  (AMQP   - used by the publisher Lambda / manager)
+#     15672 (RabbitMQ management console - optional, for verification)
+#
+# Connect:  ssh -i "your-key.pem" admin@<EC2_PUBLIC_IP>
+# Then run the commands below ON THE EC2 INSTANCE.
+# ─────────────────────────────────────────────────────────────────────────────
+
+sudo apt update && sudo apt upgrade -y
+sudo apt install -y python3 python3-pip
+
+# RabbitMQ broker
+sudo apt install -y rabbitmq-server
+sudo systemctl enable rabbitmq-server
+sudo systemctl start rabbitmq-server
+sudo systemctl status rabbitmq-server
+
+# (optional) management console on :15672
+sudo rabbitmq-plugins enable rabbitmq_management
+
+# Python libs for the manager / stream scripts that run on this VM
+sudo apt install -y python3-pika python3-boto3
+
+# A user the Lambdas / manager can authenticate with
+sudo rabbitmqctl add_user user password123
+sudo rabbitmqctl set_user_tags user administrator
+sudo rabbitmqctl set_permissions -p / user ".*" ".*" ".*"
+
+# Allow the 'user' account to connect remotely (guest is localhost-only by default)
+# (the line above already grants this; verify with:)
+sudo rabbitmqctl list_queues
